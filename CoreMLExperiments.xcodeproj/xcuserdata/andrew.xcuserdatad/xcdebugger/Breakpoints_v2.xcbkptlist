@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Bucket
+   uuid = "576544FB-9044-4961-811F-9355A5DF220F"
+   type = "1"
+   version = "2.0">
+   <Breakpoints>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "5E26101A-3B6E-4E9F-A117-28B60F508E5A"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "../../../../../Library/Developer/Xcode/DerivedData/CoreMLExperiments-fuxzwwpnnqbsnvgnnzknbpfwrusp/Index.noindex/Build/Intermediates.noindex/CoreMLExperiments.build/Debug-iphoneos/CoreMLExperiments.build/DerivedSources/CoreMLGenerated/FacePaintV1/FacePaintV1.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "93"
+            endingLineNumber = "93"
+            landmarkName = "init(model:)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "09C3DDD7-B75C-4FC6-B28E-03D7FCBF86AF"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "../../../../../Library/Developer/Xcode/DerivedData/CoreMLExperiments-fuxzwwpnnqbsnvgnnzknbpfwrusp/Index.noindex/Build/Intermediates.noindex/CoreMLExperiments.build/Debug-iphoneos/CoreMLExperiments.build/DerivedSources/CoreMLGenerated/FacePaintV1/FacePaintV1.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "105"
+            endingLineNumber = "105"
+            landmarkName = "init(configuration:)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "27ACAF1A-FA2B-4889-92F5-94153E465077"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "../../../../../Library/Developer/Xcode/DerivedData/CoreMLExperiments-fuxzwwpnnqbsnvgnnzknbpfwrusp/Index.noindex/Build/Intermediates.noindex/CoreMLExperiments.build/Debug-iphoneos/CoreMLExperiments.build/DerivedSources/CoreMLGenerated/FacePaintV1/FacePaintV1.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "116"
+            endingLineNumber = "116"
+            landmarkName = "init(contentsOf:)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "FD0DA8B2-E9FF-4700-9C77-B823971CD29A"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "../../../../../Library/Developer/Xcode/DerivedData/CoreMLExperiments-fuxzwwpnnqbsnvgnnzknbpfwrusp/Index.noindex/Build/Intermediates.noindex/CoreMLExperiments.build/Debug-iphoneos/CoreMLExperiments.build/DerivedSources/CoreMLGenerated/FacePaintV1/FacePaintV1.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "129"
+            endingLineNumber = "129"
+            landmarkName = "init(contentsOf:configuration:)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+   </Breakpoints>
+</Bucket>
