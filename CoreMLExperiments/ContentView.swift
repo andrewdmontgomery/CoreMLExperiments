@@ -4,38 +4,44 @@ import Vision
 import PhotosUI
 
 struct ContentView: View {
-    @State private var inputImage: UIImage?
-    @State private var outputImage: UIImage?
+    @State private var originalImage: UIImage?
+    @State private var currentImage: UIImage?
     @State private var selectedImageItem: PhotosPickerItem?
 
     var body: some View {
-        VStack {
-            if let inputImage {
-                Image(uiImage: inputImage)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 250)
-                    .padding()
-            } else {
-                Text("Select an Image")
-                    .foregroundColor(.gray)
+        VStack(spacing: 20) {
+            // Permanent container for the image (input or output)
+            ZStack {
+                Rectangle()
+                    .foregroundColor(.gray.opacity(0.2))
+                if let image = currentImage {
+                    Image(uiImage: image.fixedOrientation())
+                        .resizable()
+                        .scaledToFit()
+                } else {
+                    Text("No Image")
+                        .foregroundColor(.gray)
+                }
             }
+            .frame(width: 300, height: 300)
+            .cornerRadius(10)
+            .overlay(RoundedRectangle(cornerRadius: 10)
+                        .stroke(Color.gray, lineWidth: 1))
             
-            if let outputImage {
-                Image(uiImage: outputImage)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 250)
-                    .padding()
-            }
-            
-            PhotosPicker("Choose Image", selection: $selectedImageItem, matching: .images)
+            // Photo selection control
+            PhotosPicker("Choose Photo", selection: $selectedImageItem, matching: .images)
                 .onChange(of: selectedImageItem) { _, _ in
                     loadSelectedImage()
                 }
-
-            if inputImage != nil {
-                VStack {
+            
+            // Model buttons and revert button
+            
+            VStack {
+                HStack {
+                    Button("Original") {
+                        // Revert to the original image (if one has been loaded)
+                        currentImage = originalImage
+                    }
                     Button("FacePaintV1") {
                         applyFacePaintV1()
                     }
@@ -43,76 +49,140 @@ struct ContentView: View {
                         applyFacePaintV2()
                     }
                 }
-                .padding()
-                .buttonStyle(.borderedProminent)
+                HStack {
+                    Button("Paprika") {
+                        applyPaprika()
+                    }
+                    Button("CelebA Distill") {
+                        applyCelebADistill()
+                    }
+                }
             }
+            .padding()
+            .buttonStyle(.borderedProminent)
+            
+            Spacer()
         }
         .padding()
     }
     
-    /// Loads the selected image from PhotosPicker
+    // Loads the selected photo, crops it to a square (aspect fill), and sets both original and current images.
     private func loadSelectedImage() {
         guard let selectedImageItem else { return }
         Task {
             if let data = try? await selectedImageItem.loadTransferable(type: Data.self),
                let image = UIImage(data: data) {
-                inputImage = image
-                outputImage = nil
+                let fixedImage = image.fixedOrientation() // Ensure correct orientation.
+                // Crop the image to a square using an aspect fill approach.
+                let squareImage = fixedImage.cropToSquare()?.resized(to: .init(width: 1024, height: 1024)) ?? fixedImage
+                originalImage = squareImage
+                currentImage = squareImage
             }
         }
-    }
-
-    private func apply(model: VNCoreMLModel, to inputImage: UIImage) {
-        let request = VNCoreMLRequest(model: model) { request, error in
-            guard let results = request.results as? [VNPixelBufferObservation],
-                  let pixelBuffer = results.first?.pixelBuffer else {
-                return
-            }
-
-            let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
-            let context = CIContext()
-            if let cgImage = context.createCGImage(ciImage, from: ciImage.extent) {
-                DispatchQueue.main.async {
-                    self.outputImage = UIImage(cgImage: cgImage)
-                }
-            }
-        }
-
-        let handler = VNImageRequestHandler(cgImage: inputImage.cgImage!, options: [:])
-        DispatchQueue.global(qos: .userInitiated).async {
-            try? handler.perform([request])
-        }
-
     }
     
+    // Runs the FacePaintV1 model and updates the current image with the model output.
     private func applyFacePaintV1() {
-        guard let inputImage = inputImage else {
-            return
-        }
-        
-        do {
-            let model = try MLModel(contentsOf: FacePaintV2.urlOfModelInThisBundle)
-            print(model.modelDescription)
-        } catch {
-            print("❌ Failed to load model:", error)
-        }
+        guard let inputImage = originalImage else { return }
         
         do {
             let model = try FacePaintV1(configuration: MLModelConfiguration())
             let visionModel = try VNCoreMLModel(for: model.model)
             apply(model: visionModel, to: inputImage)
         } catch {
-            print(error)
+            print("FacePaintV1 error:", error)
         }
     }
     
+    // Runs the FacePaintV2 model and updates the current image with the model output.
     private func applyFacePaintV2() {
-        guard let inputImage = inputImage,
-              let model = try? VNCoreMLModel(for: FacePaintV2().model) else {
-            return
+        guard let inputImage = originalImage else { return }
+        do {
+            let model = try FacePaintV2(configuration: MLModelConfiguration())
+            let visionModel = try VNCoreMLModel(for: model.model)
+            apply(model: visionModel, to: inputImage)
+        } catch {
+            print("FacePaintV2 error:", error)
         }
+    }
+    
+    // Runs the Paprika model and updates the current image with the model output.
+    private func applyPaprika() {
+        guard let inputImage = originalImage else { return }
+        do {
+            let model = try Paprika(configuration: MLModelConfiguration())
+            let visionModel = try VNCoreMLModel(for: model.model)
+            apply(model: visionModel, to: inputImage)
+        } catch {
+            print("Paprika error:", error)
+        }
+    }
+    
+    // Runs the CelebA_Distill model and updates the current image with the model output.
+    private func applyCelebADistill() {
+        guard let inputImage = originalImage else { return }
+        do {
+            let model = try CelebA_Distill(configuration: MLModelConfiguration())
+            let visionModel = try VNCoreMLModel(for: model.model)
+            apply(model: visionModel, to: inputImage)
+        } catch {
+            print("CelebA_Distill error:", error)
+        }
+    }
+    
+    // Uses Vision to run the Core ML model and update the current image.
+    private func apply(model: VNCoreMLModel, to inputImage: UIImage) {
+        let request = VNCoreMLRequest(model: model) { request, error in
+            guard let results = request.results as? [VNPixelBufferObservation],
+                  let pixelBuffer = results.first?.pixelBuffer else { return }
+            
+            let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
+            let context = CIContext()
+            if let cgImage = context.createCGImage(ciImage, from: ciImage.extent) {
+                let resultImage = UIImage(cgImage: cgImage).fixedOrientation()
+                DispatchQueue.main.async {
+                    self.currentImage = resultImage
+                }
+            }
+        }
+        guard let cgImage = inputImage.cgImage else { return }
+        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+        DispatchQueue.global(qos: .userInitiated).async {
+            try? handler.perform([request])
+        }
+    }
+}
 
-        apply(model: model, to: inputImage)
+extension UIImage {
+    /// Fixes the orientation of the image by redrawing it.
+    func fixedOrientation() -> UIImage {
+        if imageOrientation == .up { return self }
+        UIGraphicsBeginImageContextWithOptions(size, false, scale)
+        draw(in: CGRect(origin: .zero, size: size))
+        let normalizedImage = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        return normalizedImage ?? self
+    }
+    
+    /// Crops the image to a centered square (aspect fill).
+    func cropToSquare() -> UIImage? {
+        let originalWidth  = size.width
+        let originalHeight = size.height
+        let squareLength = min(originalWidth, originalHeight)
+        let x = (originalWidth - squareLength) / 2.0
+        let y = (originalHeight - squareLength) / 2.0
+        let cropRect = CGRect(x: x, y: y, width: squareLength, height: squareLength)
+        
+        guard let cgImage = self.cgImage?.cropping(to: cropRect) else { return nil }
+        return UIImage(cgImage: cgImage, scale: scale, orientation: imageOrientation)
+    }
+    
+    /// Resizes the image to the given size.
+    func resized(to size: CGSize) -> UIImage? {
+        UIGraphicsBeginImageContextWithOptions(size, false, self.scale)
+        defer { UIGraphicsEndImageContext() }
+        draw(in: CGRect(origin: .zero, size: size))
+        return UIGraphicsGetImageFromCurrentImageContext()
     }
 }
 
