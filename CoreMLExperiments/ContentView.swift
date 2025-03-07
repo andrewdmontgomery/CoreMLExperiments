@@ -7,6 +7,9 @@ struct ContentView: View {
     @State private var originalImage: UIImage?
     @State private var currentImage: UIImage?
     @State private var selectedImageItem: PhotosPickerItem?
+    @State private var isProcessing = false
+    
+    private let modelProvider = ModelProvider()
 
     var body: some View {
         VStack(spacing: 20) {
@@ -21,6 +24,14 @@ struct ContentView: View {
                 } else {
                     Text("No Image")
                         .foregroundColor(.gray)
+                }
+                if isProcessing {
+                    ProgressView("Apply model...")
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .foregroundStyle(.white)
+                        .padding()
+                        .background(Color.black.opacity(0.3))
+                        .cornerRadius(8)
                 }
             }
             .frame(width: 300, height: 300)
@@ -43,18 +54,21 @@ struct ContentView: View {
                         currentImage = originalImage
                     }
                     Button("FacePaintV1") {
-                        applyFacePaintV1()
+                        apply(model: .facePaintV1, to: originalImage)
                     }
                     Button("FacePaintV2") {
-                        applyFacePaintV2()
+                        apply(model: .facePaintV2, to: originalImage)
+
                     }
                 }
                 HStack {
                     Button("Paprika") {
-                        applyPaprika()
+                        apply(model: .paprika, to: originalImage)
+
                     }
                     Button("CelebA Distill") {
-                        applyCelebADistill()
+                        apply(model: .celebADistill, to: originalImage)
+
                     }
                 }
             }
@@ -81,74 +95,40 @@ struct ContentView: View {
         }
     }
     
-    // Runs the FacePaintV1 model and updates the current image with the model output.
-    private func applyFacePaintV1() {
-        guard let inputImage = originalImage else { return }
+    // Uses Vision to run the Core ML model and update the current image.
+    private func apply(model modelName: ModelProvider.ModelName, to inputImage: UIImage?) {
+        guard let inputImage else { return }
         
         do {
-            let model = try FacePaintV1(configuration: MLModelConfiguration())
-            let visionModel = try VNCoreMLModel(for: model.model)
-            apply(model: visionModel, to: inputImage)
-        } catch {
-            print("FacePaintV1 error:", error)
-        }
-    }
-    
-    // Runs the FacePaintV2 model and updates the current image with the model output.
-    private func applyFacePaintV2() {
-        guard let inputImage = originalImage else { return }
-        do {
-            let model = try FacePaintV2(configuration: MLModelConfiguration())
-            let visionModel = try VNCoreMLModel(for: model.model)
-            apply(model: visionModel, to: inputImage)
-        } catch {
-            print("FacePaintV2 error:", error)
-        }
-    }
-    
-    // Runs the Paprika model and updates the current image with the model output.
-    private func applyPaprika() {
-        guard let inputImage = originalImage else { return }
-        do {
-            let model = try Paprika(configuration: MLModelConfiguration())
-            let visionModel = try VNCoreMLModel(for: model.model)
-            apply(model: visionModel, to: inputImage)
-        } catch {
-            print("Paprika error:", error)
-        }
-    }
-    
-    // Runs the CelebA_Distill model and updates the current image with the model output.
-    private func applyCelebADistill() {
-        guard let inputImage = originalImage else { return }
-        do {
-            let model = try CelebA_Distill(configuration: MLModelConfiguration())
-            let visionModel = try VNCoreMLModel(for: model.model)
-            apply(model: visionModel, to: inputImage)
-        } catch {
-            print("CelebA_Distill error:", error)
-        }
-    }
-    
-    // Uses Vision to run the Core ML model and update the current image.
-    private func apply(model: VNCoreMLModel, to inputImage: UIImage) {
-        let request = VNCoreMLRequest(model: model) { request, error in
-            guard let results = request.results as? [VNPixelBufferObservation],
-                  let pixelBuffer = results.first?.pixelBuffer else { return }
+            let model = try ModelProvider.visionModel(named: modelName)
             
-            let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
-            let context = CIContext()
-            if let cgImage = context.createCGImage(ciImage, from: ciImage.extent) {
-                let resultImage = UIImage(cgImage: cgImage).fixedOrientation()
-                DispatchQueue.main.async {
-                    self.currentImage = resultImage
+            let request = VNCoreMLRequest(model: model) { request, error in
+                defer {
+                    DispatchQueue.main.async {
+                        self.isProcessing = false
+                    }
+                }
+                
+                guard let results = request.results as? [VNPixelBufferObservation],
+                      let pixelBuffer = results.first?.pixelBuffer else { return }
+                
+                let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
+                let context = CIContext()
+                if let cgImage = context.createCGImage(ciImage, from: ciImage.extent) {
+                    let resultImage = UIImage(cgImage: cgImage).fixedOrientation()
+                    DispatchQueue.main.async {
+                        self.currentImage = resultImage
+                    }
                 }
             }
-        }
-        guard let cgImage = inputImage.cgImage else { return }
-        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-        DispatchQueue.global(qos: .userInitiated).async {
-            try? handler.perform([request])
+            guard let cgImage = inputImage.cgImage else { return }
+            let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+            DispatchQueue.global(qos: .userInitiated).async {
+                try? handler.perform([request])
+            }
+
+        } catch {
+            fatalError("Failed to load model: \(error)")
         }
     }
 }
